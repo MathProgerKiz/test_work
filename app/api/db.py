@@ -5,6 +5,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from .config import Settings
+from sqlalchemy.orm import DeclarativeBase
+
+class Base(DeclarativeBase):
+    pass
 
 settings = Settings()
 

@@ -11,7 +11,14 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-
+    ### Celery
+    celery_broker_url: str = Field(
+        validation_alias="CELERY_BROKER_URL",
+    )
+    celery_result_backend: str = Field(
+        validation_alias="CELERY_RESULT_BACKEND",
+    )
+    ### Database
     database_url: str = Field(
         validation_alias="DATABASE_URL",
         description="URL подключения к PostgreSQL",

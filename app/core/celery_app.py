@@ -22,12 +22,12 @@ celery_app.conf.update(
 
 celery_app.conf.beat_schedule = {
     "collect-btc-price-every-minute": {
-        "task": "index_price.collect",
+        "task": "app.tasks.prices.fetch_and_save_prices",
         "schedule": crontab(),  # Каждую минуту
         "args": ("btc_usd",),
     },
     "collect-eth-price-every-minute": {
-        "task": "index_price.collect",
+        "task": "app.tasks.prices.fetch_and_save_prices",
         "schedule": crontab(),
         "args": ("eth_usd",),
     },

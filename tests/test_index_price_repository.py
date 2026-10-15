@@ -44,3 +44,17 @@ class IndexPriceRepositoryTests(unittest.TestCase):
             sql,
         )
         self.assertEqual(statement.compile().params["price"], Decimal("123.45678912"))
+
+    def test_price_list_is_unlimited_by_default(self):
+        db = MagicMock()
+        db.scalars = AsyncMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        repository = IndexPriceRepository(db)
+
+        asyncio.run(repository.get_list_index_prices("btc_usd"))
+        all_rows_query = db.scalars.await_args.args[0]
+        self.assertNotIn("LIMIT", str(all_rows_query.compile(dialect=postgresql.dialect())))
+
+        asyncio.run(repository.get_list_index_prices("btc_usd", limit=25, offset=5))
+        page_query = db.scalars.await_args.args[0]
+        self.assertIn("LIMIT", str(page_query.compile(dialect=postgresql.dialect())))
+        self.assertEqual(page_query.compile().params["param_1"], 25)

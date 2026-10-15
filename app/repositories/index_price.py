@@ -24,10 +24,20 @@ class IndexPriceRepository:
         result = await self.db.scalars(statement)
         return result.first() or await self.get_index_price_by_timestamp(ticker, timestamp)
 
-    async def get_list_index_prices(self, ticker: str, limit: int = 10, offset: int = 0):
-        result = await self.db.scalars(
-            select(IndexPrice).where(IndexPrice.ticker == ticker).order_by(IndexPrice.timestamp.desc()).limit(limit).offset(offset)
+    async def get_list_index_prices(
+        self, ticker: str, limit: int | None = None, offset: int = 0
+    ):
+        statement = (
+            select(IndexPrice)
+            .where(IndexPrice.ticker == ticker)
+            .order_by(IndexPrice.timestamp.desc(), IndexPrice.id.desc())
         )
+        if offset:
+            statement = statement.offset(offset)
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        result = await self.db.scalars(statement)
         return result.all()
 
     async def get_index_price_by_timestamp(self, ticker: str, timestamp: int):

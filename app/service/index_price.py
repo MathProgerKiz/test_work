@@ -19,7 +19,7 @@ class IndexPriceService:
     async def get_list_index_prices(
         self,
         ticker: str,
-        limit: int = 10,
+        limit: int | None = None,
         offset: int = 0,
     ):
         return await self.index_price_repository.get_list_index_prices(

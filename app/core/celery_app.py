@@ -3,7 +3,6 @@ from celery.schedules import crontab
 
 from app.core.config import settings
 
-
 celery_app = Celery(
     "index_price",
     broker=settings.celery_broker_url,

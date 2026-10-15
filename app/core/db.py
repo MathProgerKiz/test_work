@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import (
 from .config import Settings
 from sqlalchemy.orm import DeclarativeBase
 
+
 class Base(DeclarativeBase):
     pass
+
 
 settings = Settings()
 

@@ -6,7 +6,6 @@ from fastapi import APIRouter, Query
 from app.schemas.index_price import IndexPriceRead
 from app.service.index_price import IndexPriceService
 
-
 router = APIRouter(
     prefix="/index-prices",
     tags=["Index prices"],
@@ -41,6 +40,7 @@ async def get_list_index_prices(
         limit=limit,
         offset=offset,
     )
+
 
 @router.get(
     "/by-timestamp",

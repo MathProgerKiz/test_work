@@ -11,7 +11,12 @@ class IndexPriceRepository:
         self.db = db
 
     async def get_last_index_price(self, ticker: str):
-        result = await self.db.scalars(select(IndexPrice).where(IndexPrice.ticker == ticker).order_by(IndexPrice.timestamp.desc()).limit(1))
+        result = await self.db.scalars(
+            select(IndexPrice)
+            .where(IndexPrice.ticker == ticker)
+            .order_by(IndexPrice.timestamp.desc())
+            .limit(1)
+        )
         return result.first()
 
     async def create_index_price(self, ticker: str, price: Decimal, timestamp: int):
@@ -22,7 +27,9 @@ class IndexPriceRepository:
             .returning(IndexPrice)
         )
         result = await self.db.scalars(statement)
-        return result.first() or await self.get_index_price_by_timestamp(ticker, timestamp)
+        return result.first() or await self.get_index_price_by_timestamp(
+            ticker, timestamp
+        )
 
     async def get_list_index_prices(
         self, ticker: str, limit: int | None = None, offset: int = 0
@@ -42,6 +49,8 @@ class IndexPriceRepository:
 
     async def get_index_price_by_timestamp(self, ticker: str, timestamp: int):
         result = await self.db.scalars(
-            select(IndexPrice).where(IndexPrice.ticker == ticker, IndexPrice.timestamp == timestamp)
+            select(IndexPrice).where(
+                IndexPrice.ticker == ticker, IndexPrice.timestamp == timestamp
+            )
         )
         return result.first()

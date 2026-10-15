@@ -4,7 +4,6 @@ import unittest
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
-
 with patch.dict(
     os.environ,
     {
@@ -35,8 +34,12 @@ class FetchAndSavePricesTests(unittest.TestCase):
             patch("app.tasks.aiohttp.ClientSession"),
             patch("app.tasks.DeribitClient", return_value=deribit),
             patch("app.tasks.IndexPriceRepository", return_value=repository),
-            patch("app.tasks.create_async_engine", side_effect=engines) as create_engine,
-            patch("app.tasks.async_sessionmaker", return_value=session_factory) as maker,
+            patch(
+                "app.tasks.create_async_engine", side_effect=engines
+            ) as create_engine,
+            patch(
+                "app.tasks.async_sessionmaker", return_value=session_factory
+            ) as maker,
             patch("app.tasks.time.time", side_effect=[125, 130]),
         ):
             asyncio.run(tasks.fetch_and_save_prices())
@@ -54,6 +57,9 @@ class FetchAndSavePricesTests(unittest.TestCase):
         engines[0].dispose.assert_awaited_once()
         engines[1].dispose.assert_awaited_once()
         self.assertEqual(
-            [call.kwargs["timestamp"] for call in repository.create_index_price.call_args_list],
+            [
+                call.kwargs["timestamp"]
+                for call in repository.create_index_price.call_args_list
+            ],
             [120, 120, 120],
         )

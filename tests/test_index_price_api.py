@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-
 with patch.dict(
     os.environ,
     {
@@ -18,6 +17,20 @@ with patch.dict(
 
 
 class IndexPriceApiTests(unittest.TestCase):
+    def test_api_documentation_is_available(self):
+        with TestClient(app) as client:
+            response = client.get("/", follow_redirects=False)
+            self.assertEqual(response.status_code, 307)
+            self.assertEqual(response.headers["location"], "/docs")
+
+            response = client.get("/docs")
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("Swagger UI", response.text)
+
+            response = client.get("/openapi.json")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["info"]["version"], "1.0.0")
+
     def test_list_returns_all_by_default_and_validates_pagination(self):
         with patch.object(
             IndexPriceService,
@@ -38,7 +51,9 @@ class IndexPriceApiTests(unittest.TestCase):
                 get_list.assert_awaited_with(ticker="btc_usd", limit=25, offset=5)
 
                 for query in ("limit=0", "limit=1001", "offset=-1"):
-                    response = client.get(f"/api/v1/index-prices?ticker=btc_usd&{query}")
+                    response = client.get(
+                        f"/api/v1/index-prices?ticker=btc_usd&{query}"
+                    )
                     self.assertEqual(response.status_code, 422, query)
 
                 self.assertEqual(get_list.await_count, 2)

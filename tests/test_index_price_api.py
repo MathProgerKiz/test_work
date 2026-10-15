@@ -1,59 +1,105 @@
-import os
-import unittest
 from unittest.mock import AsyncMock, patch
 
-from fastapi.testclient import TestClient
+import httpx
+import pytest
 
-with patch.dict(
-    os.environ,
-    {
-        "DATABASE_URL": "postgresql+psycopg://user:pass@localhost/test",
-        "CELERY_BROKER_URL": "redis://localhost:6379/0",
-        "CELERY_RESULT_BACKEND": "redis://localhost:6379/1",
-    },
-):
-    from app.main import app
-    from app.service.index_price import IndexPriceService
+from app.main import app
+from app.service.index_price import IndexPriceService
 
 
-class IndexPriceApiTests(unittest.TestCase):
-    def test_api_documentation_is_available(self):
-        with TestClient(app) as client:
-            response = client.get("/", follow_redirects=False)
-            self.assertEqual(response.status_code, 307)
-            self.assertEqual(response.headers["location"], "/docs")
+@pytest.fixture
+async def client():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+    ) as async_client:
+        yield async_client
 
-            response = client.get("/docs")
-            self.assertEqual(response.status_code, 200)
-            self.assertIn("Swagger UI", response.text)
 
-            response = client.get("/openapi.json")
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json()["info"]["version"], "1.0.0")
+@pytest.mark.asyncio
+async def test_api_documentation_is_available(client):
+    response = await client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/docs"
 
-    def test_list_returns_all_by_default_and_validates_pagination(self):
-        with patch.object(
+    response = await client.get("/docs")
+    assert response.status_code == 200
+    assert "Swagger UI" in response.text
+
+    response = await client.get("/openapi.json")
+    assert response.status_code == 200
+    assert response.json()["info"]["version"] == "1.0.0"
+
+
+@pytest.mark.asyncio
+async def test_list_returns_all_by_default_and_validates_pagination(client):
+    with patch.object(
+        IndexPriceService,
+        "get_list_index_prices",
+        new_callable=AsyncMock,
+        return_value=[],
+    ) as get_list:
+        response = await client.get("/api/v1/index-prices?ticker=btc_usd")
+        assert response.status_code == 200
+        assert response.json() == []
+        get_list.assert_awaited_with(ticker="btc_usd", limit=None, offset=0)
+
+        response = await client.get(
+            "/api/v1/index-prices?ticker=btc_usd&limit=25&offset=5"
+        )
+        assert response.status_code == 200
+        get_list.assert_awaited_with(ticker="btc_usd", limit=25, offset=5)
+
+        for query in ("limit=0", "limit=1001", "offset=-1"):
+            response = await client.get(f"/api/v1/index-prices?ticker=btc_usd&{query}")
+            assert response.status_code == 422, query
+
+        assert get_list.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/index-prices",
+        "/api/v1/index-prices/last",
+        "/api/v1/index-prices/by-timestamp?timestamp=125",
+    ],
+)
+async def test_ticker_is_required_for_every_endpoint(client, path):
+    response = await client.get(path)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_last_and_timestamp_endpoints(client):
+    price = {
+        "id": 1,
+        "ticker": "btc_usd",
+        "price": "123.45",
+        "timestamp": 120,
+    }
+    with (
+        patch.object(
             IndexPriceService,
-            "get_list_index_prices",
+            "get_last_index_price",
             new_callable=AsyncMock,
-            return_value=[],
-        ) as get_list:
-            with TestClient(app) as client:
-                response = client.get("/api/v1/index-prices?ticker=btc_usd")
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json(), [])
-                get_list.assert_awaited_with(ticker="btc_usd", limit=None, offset=0)
+            return_value=price,
+        ) as get_last,
+        patch.object(
+            IndexPriceService,
+            "get_index_price_by_timestamp",
+            new_callable=AsyncMock,
+            return_value=price,
+        ) as get_by_timestamp,
+    ):
+        response = await client.get("/api/v1/index-prices/last?ticker=btc_usd")
+        assert response.status_code == 200
+        get_last.assert_awaited_once_with("btc_usd")
 
-                response = client.get(
-                    "/api/v1/index-prices?ticker=btc_usd&limit=25&offset=5"
-                )
-                self.assertEqual(response.status_code, 200)
-                get_list.assert_awaited_with(ticker="btc_usd", limit=25, offset=5)
-
-                for query in ("limit=0", "limit=1001", "offset=-1"):
-                    response = client.get(
-                        f"/api/v1/index-prices?ticker=btc_usd&{query}"
-                    )
-                    self.assertEqual(response.status_code, 422, query)
-
-                self.assertEqual(get_list.await_count, 2)
+        response = await client.get(
+            "/api/v1/index-prices/by-timestamp?ticker=btc_usd&timestamp=125"
+        )
+        assert response.status_code == 200
+        get_by_timestamp.assert_awaited_once_with(ticker="btc_usd", timestamp=125)

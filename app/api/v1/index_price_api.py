@@ -51,7 +51,10 @@ async def get_index_price_by_timestamp(
     ticker: Literal["btc_usd", "eth_usd"],
     timestamp: Annotated[
         int,
-        Query(ge=0, description="Начало минуты сбора в UNIX-секундах (UTC)"),
+        Query(
+            ge=0,
+            description=("Любой UNIX timestamp внутри искомой минуты (UTC)"),
+        ),
     ],
     service: FromDishka[IndexPriceService],
 ):

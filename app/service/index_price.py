@@ -29,7 +29,8 @@ class IndexPriceService:
         )
 
     async def get_index_price_by_timestamp(self, ticker: str, timestamp: int):
+        minute_timestamp = timestamp // 60 * 60
         return await self.index_price_repository.get_index_price_by_timestamp(
             ticker,
-            timestamp,
+            minute_timestamp,
         )

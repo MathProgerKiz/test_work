@@ -1,12 +1,14 @@
 from celery import Celery
 from celery.schedules import crontab
 
-from app.core.config import settings
+from app.core.config import CelerySettings
+
+celery_settings = CelerySettings()
 
 celery_app = Celery(
     "index_price",
-    broker=settings.celery_broker_url,
-    backend=settings.celery_result_backend,
+    broker=celery_settings.celery_broker_url,
+    backend=celery_settings.celery_result_backend,
     include=["app.tasks"],
 )
 

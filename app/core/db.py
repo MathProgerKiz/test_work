@@ -5,15 +5,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 
-from app.core.config import settings
+from app.core.config import DatabaseSettings
 
 
 class Base(DeclarativeBase):
     pass
 
 
+database_settings = DatabaseSettings()
+
 engine = create_async_engine(
-    settings.database_url,
+    database_settings.database_url,
     pool_pre_ping=True,
 )
 

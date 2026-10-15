@@ -1,6 +1,7 @@
-
+from decimal import Decimal
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.models.index_price import IndexPrice
 
@@ -13,12 +14,15 @@ class IndexPriceRepository:
         result = await self.db.scalars(select(IndexPrice).where(IndexPrice.ticker == ticker).order_by(IndexPrice.timestamp.desc()).limit(1))
         return result.first()
 
-    async def create_index_price(self, ticker: str, price: float, timestamp: int):
-        index_price = IndexPrice(ticker=ticker, price=price, timestamp=timestamp)
-        self.db.add(index_price)
-        await self.db.commit()
-        await self.db.refresh(index_price)
-        return index_price
+    async def create_index_price(self, ticker: str, price: Decimal, timestamp: int):
+        statement = (
+            insert(IndexPrice)
+            .values(ticker=ticker, price=price, timestamp=timestamp)
+            .on_conflict_do_nothing(constraint="uq_index_prices_ticker_timestamp")
+            .returning(IndexPrice)
+        )
+        result = await self.db.scalars(statement)
+        return result.first() or await self.get_index_price_by_timestamp(ticker, timestamp)
 
     async def get_list_index_prices(self, ticker: str, limit: int = 10, offset: int = 0):
         result = await self.db.scalars(

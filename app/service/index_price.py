@@ -1,3 +1,4 @@
+from decimal import Decimal
 
 
 class IndexPriceService:
@@ -8,7 +9,7 @@ class IndexPriceService:
     async def get_last_index_price(self, ticker: str):
         return await self.index_price_repository.get_last_index_price(ticker)
 
-    async def create_index_price(self, ticker: str, price: float, timestamp: int):
+    async def create_index_price(self, ticker: str, price: Decimal, timestamp: int):
         return await self.index_price_repository.create_index_price(
             ticker,
             price,

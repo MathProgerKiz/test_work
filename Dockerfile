@@ -14,6 +14,8 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root --no-ansi
 
 COPY app ./app
+COPY alembic.ini ./
+COPY migrations ./migrations
 
 EXPOSE 8000
 

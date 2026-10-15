@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
 from app.api.v1 import index_price_api
+from app.core.db import engine
 from app.core.dependency import AppProvider
 
 container = make_async_container(AppProvider())
@@ -13,8 +14,11 @@ container = make_async_container(AppProvider())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield
-    await container.close()
+    try:
+        yield
+    finally:
+        await container.close()
+        await engine.dispose()
 
 
 app = FastAPI(

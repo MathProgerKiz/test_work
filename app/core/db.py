@@ -1,18 +1,15 @@
-from collections.abc import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from .config import Settings
 from sqlalchemy.orm import DeclarativeBase
+
+from app.core.config import settings
 
 
 class Base(DeclarativeBase):
     pass
-
-
-settings = Settings()
 
 
 engine = create_async_engine(
@@ -25,14 +22,3 @@ async_session_factory = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
-
-
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Создаёт SQLAlchemy-сессию на время обработки запроса."""
-
-    async with async_session_factory() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise

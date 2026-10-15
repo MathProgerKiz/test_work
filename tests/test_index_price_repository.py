@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from sqlalchemy.dialects import postgresql
 
-
 with patch.dict(
     os.environ,
     {
@@ -52,7 +51,9 @@ class IndexPriceRepositoryTests(unittest.TestCase):
 
         asyncio.run(repository.get_list_index_prices("btc_usd"))
         all_rows_query = db.scalars.await_args.args[0]
-        self.assertNotIn("LIMIT", str(all_rows_query.compile(dialect=postgresql.dialect())))
+        self.assertNotIn(
+            "LIMIT", str(all_rows_query.compile(dialect=postgresql.dialect()))
+        )
 
         asyncio.run(repository.get_list_index_prices("btc_usd", limit=25, offset=5))
         page_query = db.scalars.await_args.args[0]
